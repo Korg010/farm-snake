@@ -221,77 +221,92 @@
     const w = canvas.width;
     const h = canvas.height;
 
+    // Deeper, muted field so bright lime food reads clearly (not camouflaged)
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, "#8fbf72");
-    g.addColorStop(0.5, "#6fa85a");
-    g.addColorStop(1, "#5a9448");
+    g.addColorStop(0, "#5a7a48");
+    g.addColorStop(0.5, "#4a6a3c");
+    g.addColorStop(1, "#3d5a32");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
         if ((x + y) % 2 === 0) {
-          ctx.fillStyle = "rgba(255,255,255,0.06)";
+          ctx.fillStyle = "rgba(20, 30, 14, 0.18)";
+          ctx.fillRect(x * cell, y * cell, cell, cell);
+        } else {
+          ctx.fillStyle = "rgba(255, 255, 220, 0.04)";
           ctx.fillRect(x * cell, y * cell, cell, cell);
         }
       }
     }
 
-    const vg = ctx.createRadialGradient(w / 2, h / 2, w * 0.2, w / 2, h / 2, w * 0.75);
+    const vg = ctx.createRadialGradient(w / 2, h / 2, w * 0.15, w / 2, h / 2, w * 0.78);
     vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, "rgba(30,22,16,0.22)");
+    vg.addColorStop(1, "rgba(20,14,10,0.35)");
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, w, h);
 
     const border = Math.max(2, cell * 0.08);
-    ctx.strokeStyle = "#3d2b1f";
+    ctx.strokeStyle = "#2a1c14";
     ctx.lineWidth = border;
     ctx.strokeRect(border / 2, border / 2, w - border, h - border);
   }
 
   /**
-   * Original cannabis / medical-marijuana style leaf:
-   * odd number of leaflets, serrated edges, center stem — canvas only.
+   * Cannabis leaf food — almost full cell, bright lime on muted field.
+   * Seven serrated leaflets, dark outline, pale veins, soft glow.
    */
   function drawLeaf(cx, cy, size, angle) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
 
-    const leafletCount = 7;
-    const spreads = [-1.05, -0.7, -0.35, 0, 0.35, 0.7, 1.05];
-    const lenScale = [0.55, 0.72, 0.88, 1.0, 0.88, 0.72, 0.55];
-    const widthScale = [0.38, 0.42, 0.48, 0.52, 0.48, 0.42, 0.38];
-
-    // Soft glow so it pops on the field
+    // Soft outer glow / shadow so it pops on the green field
     ctx.beginPath();
-    ctx.arc(0, 0, size * 0.55, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(80, 160, 60, 0.2)";
+    ctx.arc(0, size * 0.05, size * 0.72, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
     ctx.fill();
 
-    for (let i = 0; i < leafletCount; i++) {
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.68, 0, Math.PI * 2);
+    const glow = ctx.createRadialGradient(0, 0, size * 0.1, 0, 0, size * 0.7);
+    glow.addColorStop(0, "rgba(180, 255, 80, 0.45)");
+    glow.addColorStop(0.55, "rgba(100, 220, 60, 0.22)");
+    glow.addColorStop(1, "rgba(80, 200, 40, 0)");
+    ctx.fillStyle = glow;
+    ctx.fill();
+
+    const spreads = [-1.12, -0.74, -0.37, 0, 0.37, 0.74, 1.12];
+    const lenScale = [0.58, 0.76, 0.92, 1.05, 0.92, 0.76, 0.58];
+    const widthScale = [0.42, 0.48, 0.54, 0.58, 0.54, 0.48, 0.42];
+
+    for (let i = 0; i < 7; i++) {
       drawLeaflet(
         spreads[i],
-        size * 0.92 * lenScale[i],
-        size * 0.28 * widthScale[i],
+        size * lenScale[i],
+        size * 0.34 * widthScale[i],
         i === 3
       );
     }
 
-    // Petiole / center stem down into the cell
+    // Petiole
     ctx.beginPath();
-    ctx.moveTo(0, size * 0.02);
-    ctx.quadraticCurveTo(size * 0.04, size * 0.28, 0, size * 0.42);
-    ctx.strokeStyle = "#2a5c22";
-    ctx.lineWidth = Math.max(1.2, size * 0.07);
+    ctx.moveTo(0, size * 0.04);
+    ctx.quadraticCurveTo(size * 0.05, size * 0.32, 0, size * 0.48);
+    ctx.strokeStyle = "#0d3a12";
+    ctx.lineWidth = Math.max(2, size * 0.09);
     ctx.lineCap = "round";
     ctx.stroke();
 
-    // Small bud node at leaflet junction
+    // Bud node
     ctx.beginPath();
-    ctx.arc(0, size * 0.02, size * 0.06, 0, Math.PI * 2);
-    ctx.fillStyle = "#3d7a32";
+    ctx.arc(0, size * 0.02, size * 0.08, 0, Math.PI * 2);
+    ctx.fillStyle = "#1a5c20";
     ctx.fill();
+    ctx.strokeStyle = "#06240a";
+    ctx.lineWidth = Math.max(1, size * 0.03);
+    ctx.stroke();
 
     ctx.restore();
   }
@@ -300,88 +315,76 @@
     ctx.save();
     ctx.rotate(spreadAngle);
 
-    const teeth = 6;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
+    const teeth = 7;
+    function env(u) {
+      const peak = 0.28;
+      if (u <= peak) return halfW * (0.12 + 0.88 * (u / peak));
+      return halfW * Math.max(0.015, 1 - ((u - peak) / (1 - peak)) * 0.98);
+    }
 
-    // Right serrated edge (base → tip, tip is -Y)
+    ctx.beginPath();
+    ctx.moveTo(0, length * 0.02);
+
     for (let t = 1; t <= teeth; t++) {
       const u0 = (t - 1) / teeth;
       const u1 = t / teeth;
       const uMid = (u0 + u1) / 2;
-      const env = (u) => {
-        // Widest ~30% from base, taper to sharp tip
-        const peak = 0.3;
-        const w =
-          u <= peak
-            ? halfW * (0.15 + 0.85 * (u / peak))
-            : halfW * Math.max(0.02, 1 - ((u - peak) / (1 - peak)));
-        return w;
-      };
-      const yMid = -length * uMid;
-      const y1 = -length * u1;
-      // Tooth peak then notch
-      ctx.lineTo(env(uMid) * 1.22, yMid);
-      ctx.lineTo(env(u1) * 0.72, y1);
+      ctx.lineTo(env(uMid) * 1.35, -length * uMid);
+      ctx.lineTo(env(u1) * 0.62, -length * u1);
     }
-    ctx.lineTo(0, -length); // tip
+    ctx.lineTo(0, -length);
 
-    // Left serrated edge (tip → base)
     for (let t = teeth; t >= 1; t--) {
       const u0 = t / teeth;
       const u1 = (t - 1) / teeth;
       const uMid = (u0 + u1) / 2;
-      const env = (u) => {
-        const peak = 0.3;
-        const w =
-          u <= peak
-            ? halfW * (0.15 + 0.85 * (u / peak))
-            : halfW * Math.max(0.02, 1 - ((u - peak) / (1 - peak)));
-        return w;
-      };
-      const yMid = -length * uMid;
-      const y1 = -length * u1;
-      ctx.lineTo(-env(uMid) * 1.22, yMid);
-      ctx.lineTo(-env(u1) * 0.72, y1);
+      ctx.lineTo(-env(uMid) * 1.35, -length * uMid);
+      ctx.lineTo(-env(u1) * 0.62, -length * u1);
     }
     ctx.closePath();
 
-    const lg = ctx.createLinearGradient(-halfW, -length * 0.3, halfW, 0);
+    // Bright lime / emerald fill — high contrast vs muted field
+    const lg = ctx.createLinearGradient(-halfW, -length * 0.4, halfW * 0.6, length * 0.1);
     if (isCenter) {
-      lg.addColorStop(0, "#6ec45a");
-      lg.addColorStop(0.45, "#3f9a32");
-      lg.addColorStop(1, "#2a6e24");
+      lg.addColorStop(0, "#d4ff4a");
+      lg.addColorStop(0.35, "#7CFC00");
+      lg.addColorStop(0.7, "#32CD32");
+      lg.addColorStop(1, "#228B22");
     } else {
-      lg.addColorStop(0, "#5bb34a");
-      lg.addColorStop(0.5, "#348a2c");
-      lg.addColorStop(1, "#246620");
+      lg.addColorStop(0, "#b8ff40");
+      lg.addColorStop(0.4, "#66EE22");
+      lg.addColorStop(0.75, "#2EAA28");
+      lg.addColorStop(1, "#1a7a1e");
     }
     ctx.fillStyle = lg;
     ctx.fill();
-    ctx.strokeStyle = "rgba(20, 60, 18, 0.55)";
-    ctx.lineWidth = Math.max(0.8, length * 0.025);
+
+    // Dark outline — makes silhouette scream at a glance
+    ctx.strokeStyle = "#06240a";
+    ctx.lineWidth = Math.max(1.8, length * 0.055);
+    ctx.lineJoin = "round";
     ctx.stroke();
 
-    // Center vein
+    // Lighter veins
     ctx.beginPath();
-    ctx.moveTo(0, -length * 0.06);
-    ctx.lineTo(0, -length * 0.92);
-    ctx.strokeStyle = "rgba(255,255,255,0.28)";
-    ctx.lineWidth = Math.max(0.8, length * 0.035);
+    ctx.moveTo(0, -length * 0.04);
+    ctx.lineTo(0, -length * 0.9);
+    ctx.strokeStyle = "rgba(255, 255, 210, 0.75)";
+    ctx.lineWidth = Math.max(1.2, length * 0.045);
+    ctx.lineCap = "round";
     ctx.stroke();
 
-    // Side veins
-    ctx.strokeStyle = "rgba(255,255,255,0.16)";
-    ctx.lineWidth = Math.max(0.6, length * 0.02);
-    for (let v = 1; v <= 3; v++) {
-      const uy = 0.2 + v * 0.18;
+    ctx.strokeStyle = "rgba(255, 255, 220, 0.45)";
+    ctx.lineWidth = Math.max(0.8, length * 0.028);
+    for (let v = 1; v <= 4; v++) {
+      const uy = 0.16 + v * 0.16;
       const y = -length * uy;
-      const reach = halfW * (0.55 - v * 0.08);
+      const reach = halfW * (0.7 - v * 0.08);
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(reach, y - length * 0.06);
+      ctx.lineTo(reach, y - length * 0.07);
       ctx.moveTo(0, y);
-      ctx.lineTo(-reach, y - length * 0.06);
+      ctx.lineTo(-reach, y - length * 0.07);
       ctx.stroke();
     }
 
@@ -404,11 +407,12 @@
    * Farm "rolled paper" coloring kept for theme.
    */
   function drawJointSegment(x, y, index, isHead) {
-    const pad = cell * 0.06;
+    // Fill almost the whole cell — classic chunky snake
+    const pad = cell * 0.04;
     const px = x * cell + pad;
     const py = y * cell + pad;
     const s = cell - pad * 2;
-    const rad = cell * 0.18;
+    const rad = cell * 0.22;
 
     // Bridge toward next segment so the coil reads as one connected snake
     if (index < snake.length - 1) {
@@ -416,83 +420,110 @@
       const dx = n.x - x;
       const dy = n.y - y;
       if (Math.abs(dx) + Math.abs(dy) === 1) {
-        const bridgeW = dx !== 0 ? cell - pad * 2 : s * 0.72;
-        const bridgeH = dy !== 0 ? cell - pad * 2 : s * 0.72;
+        const bridgeW = dx !== 0 ? cell - pad * 2 : s * 0.78;
+        const bridgeH = dy !== 0 ? cell - pad * 2 : s * 0.78;
         const ox = dx !== 0 ? Math.min(x, n.x) * cell + pad : px + (s - bridgeW) / 2;
         const oy = dy !== 0 ? Math.min(y, n.y) * cell + pad : py + (s - bridgeH) / 2;
-        roundRectPath(ox, oy, bridgeW, bridgeH, rad * 0.6);
-        ctx.fillStyle = index === 0 ? "#d4b878" : "#c9a868";
+        roundRectPath(ox, oy, bridgeW, bridgeH, rad * 0.5);
+        ctx.fillStyle = isHead ? "#e8c878" : "#d4b060";
         ctx.fill();
       }
     }
 
     const paper = ctx.createLinearGradient(px, py, px + s, py + s);
     if (isHead) {
-      paper.addColorStop(0, "#f5e6c8");
-      paper.addColorStop(0.55, "#d4b878");
-      paper.addColorStop(1, "#a88848");
+      paper.addColorStop(0, "#fff4d4");
+      paper.addColorStop(0.4, "#e8c878");
+      paper.addColorStop(0.75, "#c9a040");
+      paper.addColorStop(1, "#8a6028");
     } else {
-      paper.addColorStop(0, "#efe0b8");
-      paper.addColorStop(0.5, "#c9a868");
-      paper.addColorStop(1, "#8f7040");
+      const t = Math.min(1, index / 8);
+      paper.addColorStop(0, "#f0e0b0");
+      paper.addColorStop(0.45, "#d4b060");
+      paper.addColorStop(1, t > 0.5 ? "#7a5830" : "#9a7040");
     }
 
     roundRectPath(px, py, s, s, rad);
     ctx.fillStyle = paper;
     ctx.fill();
 
+    // Soft drop shadow under segment for depth
+    ctx.save();
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.restore();
+
     // Paper wrap lines
     ctx.save();
     ctx.beginPath();
     roundRectPath(px, py, s, s, rad);
     ctx.clip();
-    ctx.strokeStyle = "rgba(80,55,25,0.28)";
-    ctx.lineWidth = Math.max(1, cell * 0.04);
-    for (let a = 0.2; a < 0.9; a += 0.28) {
+    ctx.strokeStyle = "rgba(60,40,15,0.35)";
+    ctx.lineWidth = Math.max(1.2, cell * 0.045);
+    for (let a = 0.18; a < 0.92; a += 0.26) {
       ctx.beginPath();
-      ctx.moveTo(px + s * 0.1, py + s * a);
-      ctx.quadraticCurveTo(px + s * 0.5, py + s * a + s * 0.08, px + s * 0.9, py + s * a);
+      ctx.moveTo(px + s * 0.08, py + s * a);
+      ctx.quadraticCurveTo(px + s * 0.5, py + s * a + s * 0.07, px + s * 0.92, py + s * a);
       ctx.stroke();
     }
     ctx.restore();
 
     roundRectPath(px, py, s, s, rad);
-    ctx.strokeStyle = "rgba(60,40,15,0.55)";
-    ctx.lineWidth = Math.max(1, cell * 0.05);
+    ctx.strokeStyle = isHead ? "rgba(40,25,8,0.75)" : "rgba(50,35,12,0.6)";
+    ctx.lineWidth = Math.max(1.5, cell * 0.055);
     ctx.stroke();
 
     if (isHead) {
-      const cx = px + s / 2;
-      const cy = py + s / 2;
+      const hx = px + s / 2;
+      const hy = py + s / 2;
       const d = DIRS[dir];
-      const tipX = cx + d.x * s * 0.38;
-      const tipY = cy + d.y * s * 0.38;
-      const glow = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, s * 0.4);
-      glow.addColorStop(0, "rgba(255,160,60,0.85)");
-      glow.addColorStop(0.4, "rgba(220,80,30,0.45)");
+      const tipX = hx + d.x * s * 0.4;
+      const tipY = hy + d.y * s * 0.4;
+
+      // Ember tip glow
+      const glow = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, s * 0.48);
+      glow.addColorStop(0, "rgba(255,220,80,0.95)");
+      glow.addColorStop(0.25, "rgba(255,120,30,0.9)");
+      glow.addColorStop(0.55, "rgba(220,50,10,0.5)");
       glow.addColorStop(1, "rgba(180,40,10,0)");
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(tipX, tipY, s * 0.4, 0, Math.PI * 2);
+      ctx.arc(tipX, tipY, s * 0.48, 0, Math.PI * 2);
       ctx.fill();
 
-      const eyeOff = cell * 0.12;
-      const eyeR = Math.max(1.5, cell * 0.07);
+      // Solid ember core
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, Math.max(2, s * 0.12), 0, Math.PI * 2);
+      ctx.fillStyle = "#ffee88";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, Math.max(1.5, s * 0.07), 0, Math.PI * 2);
+      ctx.fillStyle = "#ff6622";
+      ctx.fill();
+
+      // Eyes — big and readable
+      const eyeOff = cell * 0.16;
+      const eyeR = Math.max(2.2, cell * 0.1);
       const ex = -d.y * eyeOff;
       const ey = d.x * eyeOff;
-      const fx = cx + d.x * cell * 0.06;
-      const fy = cy + d.y * cell * 0.06;
+      const fx = hx + d.x * cell * 0.04;
+      const fy = hy + d.y * cell * 0.04;
 
-      ctx.fillStyle = "#1e1610";
+      ctx.fillStyle = "#fffef5";
       ctx.beginPath();
-      ctx.arc(fx + ex, fy + ey, eyeR, 0, Math.PI * 2);
-      ctx.arc(fx - ex, fy - ey, eyeR, 0, Math.PI * 2);
+      ctx.arc(fx + ex, fy + ey, eyeR * 1.15, 0, Math.PI * 2);
+      ctx.arc(fx - ex, fy - ey, eyeR * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#1a1008";
+      ctx.beginPath();
+      ctx.arc(fx + ex + d.x * eyeR * 0.25, fy + ey + d.y * eyeR * 0.25, eyeR * 0.62, 0, Math.PI * 2);
+      ctx.arc(fx - ex + d.x * eyeR * 0.25, fy - ey + d.y * eyeR * 0.25, eyeR * 0.62, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = "#fff";
       ctx.beginPath();
-      ctx.arc(fx + ex - eyeR * 0.3, fy + ey - eyeR * 0.3, eyeR * 0.35, 0, Math.PI * 2);
-      ctx.arc(fx - ex - eyeR * 0.3, fy - ey - eyeR * 0.3, eyeR * 0.35, 0, Math.PI * 2);
+      ctx.arc(fx + ex - eyeR * 0.35, fy + ey - eyeR * 0.35, eyeR * 0.28, 0, Math.PI * 2);
+      ctx.arc(fx - ex - eyeR * 0.35, fy - ey - eyeR * 0.35, eyeR * 0.28, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -503,12 +534,13 @@
     if (food) {
       const fx = food.x * cell + cell / 2;
       const fy = food.y * cell + cell / 2;
+      // Ground shadow under leaf
       ctx.beginPath();
-      ctx.ellipse(fx, fy + cell * 0.14, cell * 0.32, cell * 0.14, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(30,22,16,0.22)";
+      ctx.ellipse(fx, fy + cell * 0.28, cell * 0.42, cell * 0.16, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(10, 8, 4, 0.4)";
       ctx.fill();
-      // Slightly larger so the multi-leaflet silhouette reads on the grid
-      drawLeaf(fx, fy - cell * 0.02, cell * 0.72, leafAngle);
+      // Almost full cell — leaf must scream at a glance
+      drawLeaf(fx, fy - cell * 0.02, cell * 0.95, leafAngle);
     }
 
     for (let i = snake.length - 1; i >= 0; i--) {
@@ -603,7 +635,7 @@
     showOverlay(
       "Welcome to the fields",
       "Farm Coil",
-      "Classic Snake: eat the leaves, grow the coil, don’t hit the fence or yourself.",
+      "Eat the cannabis leaves. Grow. Don’t hit walls or yourself.",
       "Press <kbd>Enter</kbd> or <kbd>Space</kbd> to start · Arrows / WASD to move"
     );
   }

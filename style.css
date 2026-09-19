@@ -400,6 +400,12 @@ kbd {
   margin: 0 0.35rem;
 }
 
+.footer .version {
+  color: rgba(30, 22, 16, 0.7);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .overlay-card {
