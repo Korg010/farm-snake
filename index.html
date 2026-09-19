@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="description" content="Farm Coil — a chill farm-themed snake game. Original art &amp; sound." />
+  <title>Farm Coil</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <header class="top-bar">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">🌿</span>
+        <h1>Farm Coil</h1>
+      </div>
+      <div class="scores">
+        <div class="score-chip">
+          <span class="label">Score</span>
+          <span id="score" class="value">0</span>
+        </div>
+        <div class="score-chip high">
+          <span class="label">Best</span>
+          <span id="high-score" class="value">0</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="stage">
+      <div class="canvas-wrap">
+        <canvas id="game" width="480" height="480" aria-label="Farm Coil game board"></canvas>
+
+        <div id="overlay" class="overlay">
+          <div class="overlay-card" id="overlay-card">
+            <p class="eyebrow" id="overlay-eyebrow">Welcome to the fields</p>
+            <h2 id="overlay-title">Farm Coil</h2>
+            <p id="overlay-msg" class="overlay-msg">Grow the coil. Grab the leaves. Stay chill.</p>
+            <p class="hint" id="overlay-hint">Press <kbd>Enter</kbd> or <kbd>Space</kbd> to start</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side-panel" id="controls-panel">
+        <div class="panel-header">
+          <h2>Controls</h2>
+          <button type="button" id="toggle-controls" class="ghost-btn" aria-expanded="true" title="Toggle panel">Hide</button>
+        </div>
+        <div class="panel-body" id="controls-body">
+          <ul class="key-list">
+            <li><kbd>↑</kbd><kbd>W</kbd> <span>Up</span></li>
+            <li><kbd>↓</kbd><kbd>S</kbd> <span>Down</span></li>
+            <li><kbd>←</kbd><kbd>A</kbd> <span>Left</span></li>
+            <li><kbd>→</kbd><kbd>D</kbd> <span>Right</span></li>
+            <li><kbd>P</kbd><kbd>Esc</kbd> <span>Pause</span></li>
+            <li><kbd>R</kbd> <span>Restart</span></li>
+            <li><kbd>M</kbd> <span>Mute</span></li>
+          </ul>
+          <div class="panel-actions">
+            <button type="button" id="btn-pause" class="action-btn">Pause</button>
+            <button type="button" id="btn-restart" class="action-btn secondary">Restart</button>
+            <button type="button" id="btn-mute" class="action-btn secondary">Mute</button>
+          </div>
+          <p class="tip">Speed picks up as you grow. Don’t crash into yourself — or the fence.</p>
+        </div>
+      </aside>
+    </main>
+
+    <div class="touch-pad" id="touch-pad" aria-label="Touch controls">
+      <button type="button" class="touch-btn" data-dir="up" aria-label="Up">▲</button>
+      <div class="touch-mid">
+        <button type="button" class="touch-btn" data-dir="left" aria-label="Left">◀</button>
+        <button type="button" class="touch-btn" data-dir="down" aria-label="Down">▼</button>
+        <button type="button" class="touch-btn" data-dir="right" aria-label="Right">▶</button>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>Original farm vibe · No third-party IP</span>
+      <span class="dot">·</span>
+      <span>Made for fun portfolios</span>
+    </footer>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
