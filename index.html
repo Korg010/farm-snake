@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="description" content="Farm Coil — a chill farm-themed snake game. Original art &amp; sound." />
   <title>Farm Coil</title>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
@@ -55,6 +55,7 @@
             <li><kbd>↓</kbd><kbd>S</kbd> <span>Down</span></li>
             <li><kbd>←</kbd><kbd>A</kbd> <span>Left</span></li>
             <li><kbd>→</kbd><kbd>D</kbd> <span>Right</span></li>
+            <li><span class="mouse-hint">🖱 Hold + move</span> <span>Steer toward cursor</span></li>
             <li><kbd>P</kbd><kbd>Esc</kbd> <span>Pause</span></li>
             <li><kbd>R</kbd> <span>Restart</span></li>
             <li><kbd>M</kbd> <span>Mute</span></li>
@@ -64,7 +65,7 @@
             <button type="button" id="btn-restart" class="action-btn secondary">Restart</button>
             <button type="button" id="btn-mute" class="action-btn secondary">Mute</button>
           </div>
-          <p class="tip">Eat the cannabis-style leaves to grow. Speed picks up as you get longer. Hit a wall or yourself and you’re done.</p>
+          <p class="tip">Hold mouse / finger and move — coil follows cursor. Eat the cannabis-style leaves to grow. Speed picks up as you get longer. Hit a wall or yourself and you’re done.</p>
         </div>
       </aside>
     </main>
@@ -79,7 +80,7 @@
     </div>
 
     <footer class="footer">
-      <span class="version">v2 — classic + leaves</span>
+      <span class="version">v3 — mouse steer</span>
       <span class="dot">·</span>
       <span>Original farm vibe · No third-party IP</span>
       <span class="dot">·</span>
@@ -87,7 +88,7 @@
     </footer>
   </div>
 
-  <script src="audio.js?v=3"></script>
-  <script src="game.js?v=3"></script>
+  <script src="audio.js?v=4"></script>
+  <script src="game.js?v=4"></script>
 </body>
 </html>

@@ -36,11 +36,12 @@ Classic Snake rules on a 20×20 grid:
 |--------|--------|
 | Enter / Space | Start / resume |
 | Arrow keys / WASD | Move |
+| Hold mouse / finger + move | Coil follows cursor (steer toward pointer) |
 | P / Escape | Pause |
 | R | Restart (back to title) |
 | M | Mute / unmute |
 | On-screen buttons | Pause, Restart, Mute |
-| Touch D-pad | Mobile / coarse pointer |
+| Touch D-pad | Mobile / coarse pointer (still works alongside canvas drag) |
 
 Score and high score persist in `localStorage` (`farmCoilHighScore`).
 

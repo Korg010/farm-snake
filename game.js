@@ -42,6 +42,9 @@
   let accum = 0;
   let raf = null;
   let leafAngle = 0;
+  let mouseSteer = false;
+  let mouseCanvasX = 0;
+  let mouseCanvasY = 0;
   const deathLines = [
     "Coil crumpled. Back to the barn?",
     "Oof — fence 1, coil 0.",
@@ -126,6 +129,7 @@
 
   function pauseGame() {
     if (state !== "playing") return;
+    stopMouseSteer();
     state = "paused";
     FarmCoilAudio.stopLoop();
     FarmCoilAudio.click();
@@ -147,6 +151,7 @@
   }
 
   function die() {
+    stopMouseSteer();
     state = "dead";
     FarmCoilAudio.stopLoop();
     FarmCoilAudio.death();
@@ -553,6 +558,7 @@
     leafAngle += 0.018;
 
     if (state === "playing") {
+      applyMouseSteer();
       const dt = now - lastTick;
       lastTick = now;
       // Clamp huge frame gaps (tab switch) so we don't multi-step through walls
@@ -566,6 +572,41 @@
     }
 
     draw();
+  }
+
+  /* ——— Mouse / pointer steering —— */
+
+  function pointerToCanvas(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / Math.max(1, rect.width);
+    const scaleY = canvas.height / Math.max(1, rect.height);
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  }
+
+  function applyMouseSteer() {
+    if (!mouseSteer || state !== "playing" || !snake.length) return;
+    const head = snake[0];
+    const hx = head.x * cell + cell / 2;
+    const hy = head.y * cell + cell / 2;
+    const dx = mouseCanvasX - hx;
+    const dy = mouseCanvasY - hy;
+    if (dx === 0 && dy === 0) return;
+
+    // Prefer the larger axis delta; setDirection ignores exact reverse of dir
+    let name;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      name = dx > 0 ? "right" : "left";
+    } else {
+      name = dy > 0 ? "down" : "up";
+    }
+    setDirection(name);
+  }
+
+  function stopMouseSteer() {
+    mouseSteer = false;
   }
 
   /* ——— Input —— */
@@ -636,7 +677,7 @@
       "Welcome to the fields",
       "Farm Coil",
       "Eat the cannabis leaves. Grow. Don’t hit walls or yourself.",
-      "Press <kbd>Enter</kbd> or <kbd>Space</kbd> to start · Arrows / WASD to move"
+      "Press <kbd>Enter</kbd> or <kbd>Space</kbd> to start · Hold mouse / finger to steer"
     );
   }
 
@@ -694,6 +735,35 @@
     if (state === "start" || state === "dead") startPlaying();
     else if (state === "paused") resumeGame();
   });
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    if (state !== "playing") return;
+    e.preventDefault();
+    mouseSteer = true;
+    const p = pointerToCanvas(e.clientX, e.clientY);
+    mouseCanvasX = p.x;
+    mouseCanvasY = p.y;
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch (_) {
+      /* ignore */
+    }
+    applyMouseSteer();
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (!mouseSteer) return;
+    const p = pointerToCanvas(e.clientX, e.clientY);
+    mouseCanvasX = p.x;
+    mouseCanvasY = p.y;
+    applyMouseSteer();
+  });
+
+  canvas.addEventListener("pointerup", stopMouseSteer);
+  canvas.addEventListener("pointercancel", stopMouseSteer);
+  canvas.addEventListener("pointerleave", stopMouseSteer);
+  window.addEventListener("blur", stopMouseSteer);
 
   window.addEventListener("keydown", onKey);
   window.addEventListener("resize", () => {

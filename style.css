@@ -339,6 +339,18 @@ kbd {
   box-shadow: 0 3px 0 #a89060;
 }
 
+.mouse-hint {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(40, 70, 30, 0.35);
+  border: 1px solid rgba(180, 220, 120, 0.35);
+  color: #e8f5c8;
+  white-space: nowrap;
+}
+
 .tip {
   margin: 0;
   font-size: 0.75rem;
