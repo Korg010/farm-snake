@@ -1,5 +1,5 @@
 /**
- * Farm Coil — classic snake with original farm / leaf aesthetic.
+ * Farm Coil — classic Snake on a grid with original farm / cannabis-leaf aesthetic.
  */
 (function () {
   "use strict";
@@ -9,7 +9,8 @@
   const STORAGE_KEY = "farmCoilHighScore";
   const BASE_MS = 140;
   const MIN_MS = 70;
-  const SPEED_STEP = 3; // ms faster per leaf
+  const SPEED_STEP = 3; // ms faster per leaf eaten (length beyond start)
+  const SCORE_PER_FOOD = 10;
 
   const DIRS = {
     up: { x: 0, y: -1 },
@@ -41,7 +42,7 @@
   let accum = 0;
   let raf = null;
   let leafAngle = 0;
-  let deathLines = [
+  const deathLines = [
     "Coil crumpled. Back to the barn?",
     "Oof — fence 1, coil 0.",
     "That leaf wasn’t worth it.",
@@ -53,7 +54,6 @@
   highEl.textContent = String(highScore);
 
   function resizeCanvas() {
-    // Keep internal resolution crisp relative to display size
     const wrap = canvas.parentElement;
     const size = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight || wrap.clientWidth));
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -64,6 +64,7 @@
 
   function resetGame() {
     const midY = Math.floor(ROWS / 2);
+    // Head + 2 body segments — classic starting length of 3
     snake = [
       { x: 6, y: midY },
       { x: 5, y: midY },
@@ -78,14 +79,17 @@
 
   function placeFood() {
     const occupied = new Set(snake.map((s) => s.x + "," + s.y));
-    let tries = 0;
-    do {
-      food = {
-        x: Math.floor(Math.random() * COLS),
-        y: Math.floor(Math.random() * ROWS),
-      };
-      tries++;
-    } while (occupied.has(food.x + "," + food.y) && tries < 500);
+    const empty = [];
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (!occupied.has(x + "," + y)) empty.push({ x, y });
+      }
+    }
+    if (empty.length === 0) {
+      food = null;
+      return;
+    }
+    food = empty[Math.floor(Math.random() * empty.length)];
   }
 
   function tickInterval() {
@@ -99,7 +103,6 @@
     overlayMsg.textContent = msg;
     overlayHint.innerHTML = hint;
     overlay.classList.remove("hidden");
-    // re-trigger pop animation
     const card = document.getElementById("overlay-card");
     card.style.animation = "none";
     void card.offsetWidth;
@@ -130,7 +133,7 @@
       "Take a breath",
       "Paused",
       "The coil waits in the rows.",
-      "Press <kbd>P</kbd> / <kbd>Esc</kbd> or <kbd>Enter</kbd> to resume"
+      "Press <kbd>P</kbd> / <kbd>Esc</kbd> or <kbd>Enter</kbd> / <kbd>Space</kbd> to resume"
     );
   }
 
@@ -145,6 +148,7 @@
 
   function die() {
     state = "dead";
+    FarmCoilAudio.stopLoop();
     FarmCoilAudio.death();
     if (score > highScore) {
       highScore = score;
@@ -160,9 +164,20 @@
     );
   }
 
+  /**
+   * Classic Snake: cannot reverse into yourself in one tick.
+   * Compare against the direction that will be used this tick (nextDir once set,
+   * else committed dir) so opposite presses never 180° you into your neck.
+   */
   function setDirection(name) {
     if (!DIRS[name]) return;
-    if (state === "playing" && OPPOSITE[dir] === name) return;
+    if (state !== "playing") {
+      nextDir = name;
+      return;
+    }
+    const against = nextDir;
+    if (OPPOSITE[against] === name) return;
+    if (OPPOSITE[dir] === name) return;
     nextDir = name;
   }
 
@@ -173,14 +188,16 @@
     const nx = head.x + d.x;
     const ny = head.y + d.y;
 
-    // Walls
+    // Classic: die on walls (no wrap)
     if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) {
       die();
       return;
     }
-    // Self — allow moving into the tail cell that will vacate (unless growing)
+
     const willGrow = food && nx === food.x && ny === food.y;
-    for (let i = 0; i < snake.length - (willGrow ? 0 : 1); i++) {
+    // Self collision — tail cell is free unless we grow this tick
+    const checkLen = snake.length - (willGrow ? 0 : 1);
+    for (let i = 0; i < checkLen; i++) {
       if (snake[i].x === nx && snake[i].y === ny) {
         die();
         return;
@@ -189,7 +206,7 @@
 
     snake.unshift({ x: nx, y: ny });
     if (willGrow) {
-      score += 10;
+      score += SCORE_PER_FOOD;
       scoreEl.textContent = String(score);
       FarmCoilAudio.eat();
       placeFood();
@@ -204,7 +221,6 @@
     const w = canvas.width;
     const h = canvas.height;
 
-    // Soft field gradient
     const g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, "#8fbf72");
     g.addColorStop(0.5, "#6fa85a");
@@ -212,7 +228,6 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
-    // Checker / crop rows
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
         if ((x + y) % 2 === 0) {
@@ -222,120 +237,251 @@
       }
     }
 
-    // Soft vignette
     const vg = ctx.createRadialGradient(w / 2, h / 2, w * 0.2, w / 2, h / 2, w * 0.75);
     vg.addColorStop(0, "rgba(0,0,0,0)");
     vg.addColorStop(1, "rgba(30,22,16,0.22)");
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, w, h);
 
-    // Fence border
     const border = Math.max(2, cell * 0.08);
     ctx.strokeStyle = "#3d2b1f";
     ctx.lineWidth = border;
     ctx.strokeRect(border / 2, border / 2, w - border, h - border);
   }
 
+  /**
+   * Original cannabis / medical-marijuana style leaf:
+   * odd number of leaflets, serrated edges, center stem — canvas only.
+   */
   function drawLeaf(cx, cy, size, angle) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
 
-    // Leaf body
-    ctx.beginPath();
-    ctx.moveTo(0, -size * 0.55);
-    ctx.bezierCurveTo(size * 0.55, -size * 0.25, size * 0.5, size * 0.35, 0, size * 0.55);
-    ctx.bezierCurveTo(-size * 0.5, size * 0.35, -size * 0.55, -size * 0.25, 0, -size * 0.55);
-    ctx.closePath();
+    const leafletCount = 7;
+    const spreads = [-1.05, -0.7, -0.35, 0, 0.35, 0.7, 1.05];
+    const lenScale = [0.55, 0.72, 0.88, 1.0, 0.88, 0.72, 0.55];
+    const widthScale = [0.38, 0.42, 0.48, 0.52, 0.48, 0.42, 0.38];
 
-    const lg = ctx.createLinearGradient(-size * 0.3, -size * 0.3, size * 0.3, size * 0.3);
-    lg.addColorStop(0, "#7ec96a");
-    lg.addColorStop(1, "#3d8a30");
-    ctx.fillStyle = lg;
+    // Soft glow so it pops on the field
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(80, 160, 60, 0.2)";
     ctx.fill();
-    ctx.strokeStyle = "rgba(30,80,20,0.45)";
-    ctx.lineWidth = Math.max(1, size * 0.06);
+
+    for (let i = 0; i < leafletCount; i++) {
+      drawLeaflet(
+        spreads[i],
+        size * 0.92 * lenScale[i],
+        size * 0.28 * widthScale[i],
+        i === 3
+      );
+    }
+
+    // Petiole / center stem down into the cell
+    ctx.beginPath();
+    ctx.moveTo(0, size * 0.02);
+    ctx.quadraticCurveTo(size * 0.04, size * 0.28, 0, size * 0.42);
+    ctx.strokeStyle = "#2a5c22";
+    ctx.lineWidth = Math.max(1.2, size * 0.07);
+    ctx.lineCap = "round";
     ctx.stroke();
 
-    // Vein
+    // Small bud node at leaflet junction
     ctx.beginPath();
-    ctx.moveTo(0, -size * 0.4);
-    ctx.lineTo(0, size * 0.4);
-    ctx.strokeStyle = "rgba(255,255,255,0.35)";
-    ctx.lineWidth = Math.max(1, size * 0.05);
-    ctx.stroke();
+    ctx.arc(0, size * 0.02, size * 0.06, 0, Math.PI * 2);
+    ctx.fillStyle = "#3d7a32";
+    ctx.fill();
 
     ctx.restore();
   }
 
-  function drawJointSegment(x, y, index, isHead) {
-    const px = x * cell + cell / 2;
-    const py = y * cell + cell / 2;
-    const r = cell * 0.38;
-
+  function drawLeaflet(spreadAngle, length, halfW, isCenter) {
     ctx.save();
-    ctx.translate(px, py);
+    ctx.rotate(spreadAngle);
 
-    // Paper wrap body — warm cream / tan rolled look
-    const paper = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+    const teeth = 6;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+
+    // Right serrated edge (base → tip, tip is -Y)
+    for (let t = 1; t <= teeth; t++) {
+      const u0 = (t - 1) / teeth;
+      const u1 = t / teeth;
+      const uMid = (u0 + u1) / 2;
+      const env = (u) => {
+        // Widest ~30% from base, taper to sharp tip
+        const peak = 0.3;
+        const w =
+          u <= peak
+            ? halfW * (0.15 + 0.85 * (u / peak))
+            : halfW * Math.max(0.02, 1 - ((u - peak) / (1 - peak)));
+        return w;
+      };
+      const yMid = -length * uMid;
+      const y1 = -length * u1;
+      // Tooth peak then notch
+      ctx.lineTo(env(uMid) * 1.22, yMid);
+      ctx.lineTo(env(u1) * 0.72, y1);
+    }
+    ctx.lineTo(0, -length); // tip
+
+    // Left serrated edge (tip → base)
+    for (let t = teeth; t >= 1; t--) {
+      const u0 = t / teeth;
+      const u1 = (t - 1) / teeth;
+      const uMid = (u0 + u1) / 2;
+      const env = (u) => {
+        const peak = 0.3;
+        const w =
+          u <= peak
+            ? halfW * (0.15 + 0.85 * (u / peak))
+            : halfW * Math.max(0.02, 1 - ((u - peak) / (1 - peak)));
+        return w;
+      };
+      const yMid = -length * uMid;
+      const y1 = -length * u1;
+      ctx.lineTo(-env(uMid) * 1.22, yMid);
+      ctx.lineTo(-env(u1) * 0.72, y1);
+    }
+    ctx.closePath();
+
+    const lg = ctx.createLinearGradient(-halfW, -length * 0.3, halfW, 0);
+    if (isCenter) {
+      lg.addColorStop(0, "#6ec45a");
+      lg.addColorStop(0.45, "#3f9a32");
+      lg.addColorStop(1, "#2a6e24");
+    } else {
+      lg.addColorStop(0, "#5bb34a");
+      lg.addColorStop(0.5, "#348a2c");
+      lg.addColorStop(1, "#246620");
+    }
+    ctx.fillStyle = lg;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(20, 60, 18, 0.55)";
+    ctx.lineWidth = Math.max(0.8, length * 0.025);
+    ctx.stroke();
+
+    // Center vein
+    ctx.beginPath();
+    ctx.moveTo(0, -length * 0.06);
+    ctx.lineTo(0, -length * 0.92);
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.lineWidth = Math.max(0.8, length * 0.035);
+    ctx.stroke();
+
+    // Side veins
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = Math.max(0.6, length * 0.02);
+    for (let v = 1; v <= 3; v++) {
+      const uy = 0.2 + v * 0.18;
+      const y = -length * uy;
+      const reach = halfW * (0.55 - v * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(reach, y - length * 0.06);
+      ctx.moveTo(0, y);
+      ctx.lineTo(-reach, y - length * 0.06);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function roundRectPath(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  /**
+   * Classic grid snake: filled cell-sized rounded blocks, lightly connected.
+   * Farm "rolled paper" coloring kept for theme.
+   */
+  function drawJointSegment(x, y, index, isHead) {
+    const pad = cell * 0.06;
+    const px = x * cell + pad;
+    const py = y * cell + pad;
+    const s = cell - pad * 2;
+    const rad = cell * 0.18;
+
+    // Bridge toward next segment so the coil reads as one connected snake
+    if (index < snake.length - 1) {
+      const n = snake[index + 1];
+      const dx = n.x - x;
+      const dy = n.y - y;
+      if (Math.abs(dx) + Math.abs(dy) === 1) {
+        const bridgeW = dx !== 0 ? cell - pad * 2 : s * 0.72;
+        const bridgeH = dy !== 0 ? cell - pad * 2 : s * 0.72;
+        const ox = dx !== 0 ? Math.min(x, n.x) * cell + pad : px + (s - bridgeW) / 2;
+        const oy = dy !== 0 ? Math.min(y, n.y) * cell + pad : py + (s - bridgeH) / 2;
+        roundRectPath(ox, oy, bridgeW, bridgeH, rad * 0.6);
+        ctx.fillStyle = index === 0 ? "#d4b878" : "#c9a868";
+        ctx.fill();
+      }
+    }
+
+    const paper = ctx.createLinearGradient(px, py, px + s, py + s);
     if (isHead) {
       paper.addColorStop(0, "#f5e6c8");
       paper.addColorStop(0.55, "#d4b878");
       paper.addColorStop(1, "#a88848");
     } else {
-      const t = index / Math.max(1, snake.length);
       paper.addColorStop(0, "#efe0b8");
       paper.addColorStop(0.5, "#c9a868");
       paper.addColorStop(1, "#8f7040");
-      // slight green tint toward tail tip
-      if (t > 0.7) {
-        // redraw tint overlay below
-      }
     }
 
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    roundRectPath(px, py, s, s, rad);
     ctx.fillStyle = paper;
     ctx.fill();
 
-    // Spiral paper wrap lines
+    // Paper wrap lines
+    ctx.save();
     ctx.beginPath();
+    roundRectPath(px, py, s, s, rad);
+    ctx.clip();
     ctx.strokeStyle = "rgba(80,55,25,0.28)";
     ctx.lineWidth = Math.max(1, cell * 0.04);
-    for (let a = -0.8; a < 0.9; a += 0.45) {
-      ctx.moveTo(-r * 0.7, a * r);
-      ctx.quadraticCurveTo(0, a * r + r * 0.15, r * 0.7, a * r);
+    for (let a = 0.2; a < 0.9; a += 0.28) {
+      ctx.beginPath();
+      ctx.moveTo(px + s * 0.1, py + s * a);
+      ctx.quadraticCurveTo(px + s * 0.5, py + s * a + s * 0.08, px + s * 0.9, py + s * a);
+      ctx.stroke();
     }
-    ctx.stroke();
+    ctx.restore();
 
-    // Outline
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    roundRectPath(px, py, s, s, rad);
     ctx.strokeStyle = "rgba(60,40,15,0.55)";
     ctx.lineWidth = Math.max(1, cell * 0.05);
     ctx.stroke();
 
     if (isHead) {
-      // Tiny ember tip glow at front
+      const cx = px + s / 2;
+      const cy = py + s / 2;
       const d = DIRS[dir];
-      const tipX = d.x * r * 0.85;
-      const tipY = d.y * r * 0.85;
-      const glow = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, r * 0.55);
+      const tipX = cx + d.x * s * 0.38;
+      const tipY = cy + d.y * s * 0.38;
+      const glow = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, s * 0.4);
       glow.addColorStop(0, "rgba(255,160,60,0.85)");
       glow.addColorStop(0.4, "rgba(220,80,30,0.45)");
       glow.addColorStop(1, "rgba(180,40,10,0)");
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(tipX, tipY, r * 0.55, 0, Math.PI * 2);
+      ctx.arc(tipX, tipY, s * 0.4, 0, Math.PI * 2);
       ctx.fill();
 
-      // Chill little eyes
       const eyeOff = cell * 0.12;
       const eyeR = Math.max(1.5, cell * 0.07);
       const ex = -d.y * eyeOff;
       const ey = d.x * eyeOff;
-      const fx = d.x * cell * 0.08;
-      const fy = d.y * cell * 0.08;
+      const fx = cx + d.x * cell * 0.06;
+      const fy = cy + d.y * cell * 0.06;
 
       ctx.fillStyle = "#1e1610";
       ctx.beginPath();
@@ -343,33 +489,28 @@
       ctx.arc(fx - ex, fy - ey, eyeR, 0, Math.PI * 2);
       ctx.fill();
 
-      // Eye shine
       ctx.fillStyle = "#fff";
       ctx.beginPath();
       ctx.arc(fx + ex - eyeR * 0.3, fy + ey - eyeR * 0.3, eyeR * 0.35, 0, Math.PI * 2);
       ctx.arc(fx - ex - eyeR * 0.3, fy - ey - eyeR * 0.3, eyeR * 0.35, 0, Math.PI * 2);
       ctx.fill();
     }
-
-    ctx.restore();
   }
 
   function draw() {
     drawField();
 
-    // Food leaf
     if (food) {
       const fx = food.x * cell + cell / 2;
       const fy = food.y * cell + cell / 2;
-      // Soft shadow
       ctx.beginPath();
-      ctx.ellipse(fx, fy + cell * 0.12, cell * 0.28, cell * 0.12, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(30,22,16,0.2)";
+      ctx.ellipse(fx, fy + cell * 0.14, cell * 0.32, cell * 0.14, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(30,22,16,0.22)";
       ctx.fill();
-      drawLeaf(fx, fy, cell * 0.55, leafAngle);
+      // Slightly larger so the multi-leaflet silhouette reads on the grid
+      drawLeaf(fx, fy - cell * 0.02, cell * 0.72, leafAngle);
     }
 
-    // Snake — draw from tail so head is on top
     for (let i = snake.length - 1; i >= 0; i--) {
       drawJointSegment(snake[i].x, snake[i].y, i, i === 0);
     }
@@ -377,12 +518,13 @@
 
   function loop(now) {
     raf = requestAnimationFrame(loop);
-    leafAngle += 0.02;
+    leafAngle += 0.018;
 
     if (state === "playing") {
       const dt = now - lastTick;
       lastTick = now;
-      accum += dt;
+      // Clamp huge frame gaps (tab switch) so we don't multi-step through walls
+      accum += Math.min(dt, tickInterval() * 3);
       const interval = tickInterval();
       while (accum >= interval) {
         accum -= interval;
@@ -461,8 +603,8 @@
     showOverlay(
       "Welcome to the fields",
       "Farm Coil",
-      "Grow the coil. Grab the leaves. Stay chill.",
-      "Press <kbd>Enter</kbd> or <kbd>Space</kbd> to start"
+      "Classic Snake: eat the leaves, grow the coil, don’t hit the fence or yourself.",
+      "Press <kbd>Enter</kbd> or <kbd>Space</kbd> to start · Arrows / WASD to move"
     );
   }
 
@@ -471,7 +613,6 @@
     if (btn) btn.textContent = muted ? "Unmute" : "Mute";
   }
 
-  // Buttons
   document.getElementById("btn-pause").addEventListener("click", () => {
     if (state === "playing") pauseGame();
     else if (state === "paused") resumeGame();
@@ -499,7 +640,6 @@
     btn.setAttribute("aria-expanded", String(!collapsed));
   });
 
-  // Touch D-pad
   document.querySelectorAll(".touch-btn").forEach((btn) => {
     const fire = (e) => {
       e.preventDefault();
@@ -517,7 +657,6 @@
     btn.addEventListener("pointerdown", fire);
   });
 
-  // Overlay click to start
   overlay.addEventListener("click", (e) => {
     if (e.target.closest("kbd")) return;
     if (state === "start" || state === "dead") startPlaying();

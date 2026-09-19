@@ -1,6 +1,6 @@
 # Farm Coil
 
-A browser Snake game with a lighthearted farm aesthetic — rolled-paper coil, leafy snacks, soft field colors. Built as a fun portfolio piece with **original** art and sound (canvas/CSS + Web Audio). No third-party IP, characters, logos, or copyrighted audio.
+A browser **classic Snake** game with a lighthearted farm aesthetic — rolled-paper coil, original cannabis-style leaf snacks (multi-leaflet, serrated, canvas-drawn), soft field colors. Built as a fun portfolio piece with **original** art and sound (canvas/CSS + Web Audio). No third-party IP, characters, logos, or copyrighted audio.
 
 ## Run
 
@@ -21,12 +21,21 @@ python3 -m http.server 8080
 
 No build step, no frameworks — just static files.
 
+## Gameplay
+
+Classic Snake rules on a 20×20 grid:
+
+- Move one cell per tick (speed ramps slightly as you grow)
+- Eat a leaf → grow by 1, score up, new leaf spawns
+- Hit a wall or yourself → game over (no wrap)
+- Cannot reverse 180° into yourself in one tick
+
 ## Controls
 
 | Input | Action |
 |--------|--------|
-| Arrow keys / WASD | Move |
 | Enter / Space | Start / resume |
+| Arrow keys / WASD | Move |
 | P / Escape | Pause |
 | R | Restart (back to title) |
 | M | Mute / unmute |
@@ -37,7 +46,7 @@ Score and high score persist in `localStorage` (`farmCoilHighScore`).
 
 ## Theme note
 
-The look is an **original parody-inspired farm vibe** (fields, leaves, a geometric “rolled paper” coil drawn on canvas). It does **not** use names, quotes, logos, sprites, or audio from any TV show or studio. Sounds are generated live with the Web Audio API.
+The look is an **original farm vibe** (fields, medical-marijuana-style leaves drawn as original multi-fingered cannabis leaves on canvas, a geometric “rolled paper” coil). It does **not** use names, quotes, logos, sprites, or audio from any TV show or studio. Sounds are generated live with the Web Audio API.
 
 ## Files
 
